@@ -41,6 +41,9 @@
 *.VC.db
 *.VC.opendb
 
+*.vsconfig
+
+
 # Precompiled Assets
 SourceArt/**/*.png
 SourceArt/**/*.tga
@@ -72,3 +75,8 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# Custom
+Builds/*
+Content/StarterContent/*
+Platforms/*
