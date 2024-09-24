@@ -8,97 +8,94 @@
 #include "PingPong/PlayerController/PingPongPlayerController.h"
 #include "PingPong/Pawn/PingPongPawn.h"
 #include "Net/UnrealNetwork.h"
+#include "PingPong/HUD/PingPongHUD.h"
+#include "PingPong/PlayerState/PingPongPlayerState.h"
+#include "PingPong/PlayerStart/PingPongPlayerStart.h"
+#include "Engine/World.h"
+#include "EngineUtils.h"
 
-
-
-APingPongGameMode::APingPongGameMode()
+APingPongGameMode::APingPongGameMode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
+	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/Blueprints/Pawn/BP_PingPongPawn"));
+	DefaultPawnClass = PlayerPawnClassFinder.Class;
+
+	HUDClass = APingPongHUD::StaticClass();
+
+	PlayerControllerClass = APingPongPlayerController::StaticClass();
+
+	PlayerStateClass = APingPongPlayerState::StaticClass();
+
 }
 
 void APingPongGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UGameplayStatics::GetAllActorsOfClass(this, APlayerStart::StaticClass(), PlayerStarts1);
-	Selection = PlayerStarts1.Num() - 1;
-}
-
-void APingPongGameMode::RequestRespawn(APawn* Pawn, AController* Controller)
-{
-	if (Pawn)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("Pawn Reset/Destrot - Name: %s"), *Pawn->GetName());
-		UE_LOG(LogTemp, Warning, TEXT("Found Player Starts: %d | Selection: %d"), PlayerStarts1.Num(), Selection);
-
-		//Pawn->Reset();
-		//Pawn->Destroy();
-
-		RestartPlayerAtPlayerStart(Controller, PlayerStarts1[Selection]);
-		PlayerStarts1.RemoveAt(PlayerStarts1.Num() - 1);
-		Selection -= 1;
-
-
-		UE_LOG(LogTemp, Warning, TEXT("Player Starts Array Num: %d | Selection: %d"), PlayerStarts1.Num(), Selection);
-
-
-	}
 }
 
 void APingPongGameMode::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
+
 	if (NewPlayer)
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("Restart Player Controller Name: %s"), *NewPlayer->GetName());
+		UE_LOG(LogTemp, Warning, TEXT("Post Login - Controller Name: %s"), *NewPlayer->GetName());
+		
+		APingPongPlayerState* PS = Cast<APingPongPlayerState>(NewPlayer->PlayerState);
 
+		if (PS && GameState)
+		{
+			uint8 NumTeamA = 0;
+			uint8 NumTeamB = 0;
+			for (APlayerState* It : GameState->PlayerArray)
+			{
+				APingPongPlayerState* OtherPS = Cast<APingPongPlayerState>(It);
+				if (OtherPS)
+				{
+					if (OtherPS->bTeamB)
+					{
+						++NumTeamB;
+						UE_LOG(LogTemp, Warning, TEXT("Team B: %d"), NumTeamB);
 
+					}
+					else
+					{
+						++NumTeamA;
+						UE_LOG(LogTemp, Warning, TEXT("Team A: %d"), NumTeamA);
+
+					}
+				}
+			}
+			if (NumTeamA > NumTeamB)
+			{
+				PS->bTeamB = true;
+			}
+		}
 	}
-
-	//UE_LOG(LogTemp, Warning, TEXT("PostLogin - PC: %s"), *NewPlayer->GetName());
-	//UE_LOG(LogTemp, Warning, TEXT("PostLogin - Pawn: %s"), *NewPlayer->GetPawn());
-
-
-	// Waiting Player UI !!! 
-
-	/*APingPongPlayerController* BlasterPlayerController = Cast<APingPongPlayerController>(NewPlayer);
-	APingPongPawn* Pawn = Cast<APingPongPawn>(BlasterPlayerController->GetPawn());
-	if (Pawn)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Pawn Name: %s"), *Pawn->GetName());
-		Pawn->Reset();
-		Pawn->Destroy();
-
-	}
-	if (BlasterPlayerController)
-	{
-
-		UE_LOG(LogTemp, Warning, TEXT("Player Controller Name: %s"), *BlasterPlayerController->GetName());
-		TArray<AActor*> PlayerStarts;
-		UGameplayStatics::GetAllActorsOfClass(this, APlayerStart::StaticClass(), PlayerStarts);
-		int32 Selection = FMath::RandRange(0, PlayerStarts.Num() - 1);
-		RestartPlayerAtPlayerStart(BlasterPlayerController, PlayerStarts[Selection]);
-
-	}*/
-
-
-	//int32 NumberOfPlayers = GameState.Get()->PlayerArray.Num();
-	//if (NumberOfPlayers == 2)
-	//{
-	//	UWorld* World = GetWorld();
-	//	if (World)
-	//	{
-	//		for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
-	//		{
-	//		}
-	//	}
-	//	//UE_LOG(LogTemp, Warning, TEXT("Start Match !!!"));
-	//}
 }
 
+AActor* APingPongGameMode::ChoosePlayerStart(AController* Player)
+{
+	if (Player)
+	{
+		APingPongPlayerState* PS = Cast<APingPongPlayerState>(Player->PlayerState);
+		if (PS)
+		{
+			TArray<APingPongPlayerStart*> Starts;
+			for (TActorIterator<APingPongPlayerStart> StartItr(GetWorld()); StartItr; ++StartItr)
+			{
+				if (StartItr->bTeamB == PS->bTeamB)
+				{
+					Starts.Add(*StartItr);
+				}
+			}
 
-//void APingPongGameMode::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-//{
-//	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-//
-//}
+			 auto PlayerStart =  Starts[FMath::RandRange(0, Starts.Num() - 1)];
+			UE_LOG(LogTemp, Warning, TEXT("ChoosePlayerStart: %s"), *PlayerStart->GetName());
+			return PlayerStart;
+		}
+	}
 
+	return NULL;
+}

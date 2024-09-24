@@ -13,20 +13,14 @@ class PINGPONG_API APingPongGameMode : public AGameModeBase
 	GENERATED_BODY()
 	
 public:
-	APingPongGameMode();
+	APingPongGameMode(const FObjectInitializer& ObjectInitializer);
 
 	virtual void BeginPlay() override;
 
-	void RequestRespawn(APawn* Pawn, AController* Controller);
+	void PostLogin(APlayerController* NewPlayer) override;
 
-	//virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	AActor* ChoosePlayerStart(AController* Player);
+	
+	bool ShouldSpawnAtStartSpot(AController* Player) { return false; }
 
-
-protected:
-	virtual void PostLogin(APlayerController* NewPlayer) override;
-
-
-
-	TArray<AActor*> PlayerStarts1;
-	int32 Selection;
 };

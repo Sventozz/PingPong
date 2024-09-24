@@ -37,12 +37,12 @@ void APingPongPawn::BeginPlay()
 	{
 		NetUpdateFrequency = 1;
 
-		UE_LOG(LogTemp, Warning, TEXT("Pawn Name: %s"), *GetName());
+	/*	UE_LOG(LogTemp, Warning, TEXT("Pawn Name: %s"), *GetName());
 		APingPongGameMode* PingPongGameMode = GetWorld()->GetAuthGameMode<APingPongGameMode>();
 		if (PingPongGameMode)
 		{
 			PingPongGameMode->RequestRespawn(this, GetController());
-		}
+		}*/
 
 	}
 }
